@@ -14,8 +14,10 @@
   "doors":{
 
   },
-  "loadingbalancing":{
-      "HallService":["HallService1","HallService2"]
+  "serverblance":{
+      "HallService":["127.0.0.1:39401","127.0.0.1:39402"],
+      "GameService":[]
+
   },
   "cache":{
     "type":"redis-not-install",
@@ -27,17 +29,19 @@
   },
   "database":{
     "mongodb":{
-      "type":"mongodb"
+        "account":"root",
+        "pass":"123456",
+        "ip":"127.0.0.1",
+        "port":"27017",
+        "dbname":"majiang"
     }
-  },
-  "weixin":{
-    "appid":"wx403ede93b30370f8",
-    "secret":"08a0e2e2e696e505bbdef6972047ba6d"
   },
   "ids":{
       "from":10000000,
       "to":99999999,
-      "path":"data/ids.txt"
+      "countpath":"data/idcounts.txt",
+      "path":"data/ids.txt",
+      "create":false
   },
   "codes":{
     "-1":"客户端需要重新微信认证",
