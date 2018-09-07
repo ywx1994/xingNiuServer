@@ -21,6 +21,9 @@ module.exports = function () {
 
     var service = {};
 
+
+    var  a = 0;
+    a.hah();
     service.hello = function (text,cb) {
         console.log("接收到客户端的消息了:"+text);
         cb({mes:"客户端你好，我已经接受到你的消息了"})

@@ -37,5 +37,16 @@
     "ws": "^2.2.3"
   },
   "author": "litengfei",
-  "license": "ISC"
+  "license": "ISC",
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ywx1994/xingNiuServer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ywx1994/xingNiuServer/issues"
+  },
+  "homepage": "https://github.com/ywx1994/xingNiuServer#readme"
 }

@@ -7,23 +7,12 @@ function Config() {
     this.configJson = {};
 }
 Config.prototype.load = function (fileName) {
-    var jsonString = fs.readFileSync(path.normalize(__dirname + "/../"+fileName),"utf-8");
+    var jsonString = fs.readFileSync(path.normalize(__dirname + "/../"+fileName));
     this.configJson = JSON.parse(jsonString);
 }
 
 Config.prototype.get = function (key) {
     return this.configJson[key];
-}
-
-Config.getServerConfig = function () {
-    var config = new Config();
-    config.load("config.json")
-    if(config.get("mode") == "debug"){
-        config.load("serverconfdebug.json");
-        return config.configJson;
-    }
-    config.load("serverconf.json");
-    return config.configJson;
 }
 
 module.exports = Config;
