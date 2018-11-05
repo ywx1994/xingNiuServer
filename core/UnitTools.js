@@ -817,7 +817,10 @@ UnitTools.combinationWithElementCbForceStop = function (elementcb,forceStop) {
         elementcb(combine);
     }
 }
-
+UnitTools.getNumFromStr = function (str) {
+    let num = str.replace(/[^0-9]/ig, "");
+    return Number(num);
+};
 //传递一个controller来控制一步一步的执行 返回true继续执行，返回false 则不执行
 UnitTools.combinationWithElementCbAndController = function (elementcb,controller) {
     var counts = 0;

@@ -1,71 +1,191 @@
 /**
- * Created by litengfei on 2017/9/13.
- */
-/**
- * Created by litengfei on 2017/4/10.
- */
-
-/**
- * Created by litengfei on 2017/1/8.
- * 门的主要作用是路由客户端的请求，一般用来做一些实时性不大的请求,比如登录，大厅操作等，比如游戏服务器的话，需要很强的顺序性的话，所以，需要再次联系游戏服务器
+ * Created by youwenxing on 2018/9/17.
  */
 var app = require("./../core/app.js").instance;
 var UnitTools = require("./../core/UnitTools.js");
-
+var Config = require("../core/Config.js");
+var playerManager = require("./../model/PlayerManager.js");
+var roomController = require("../games/share/RoomManager.js");
+var myDB = require("../core/db");
+myDB.connect(Config.getServerConfig().mysql);
 module.exports = function () {
 
     var onStart = function (serverID, serviceType, serverIP, serverPort, custom) {
 
-    }
+    };
 
     var onClientIn = function (session) {
 
-    }
+    };
 
     var onClientOut = function (session) {
-
-    }
-
+        if (!playerManager.hasPlayer(session.playerID)) return;
+        if (session === playerManager.getSession(session.playerID)){
+            playerManager.setIsLogin(session.playerID,false);//设置非登录状态
+        }
+    };
+    /**-----------------------------------------------------*/
     var service = {};
 
 
     /**
-     * 客户端调用微信登录
-     * @param argJson uuid 微信uuid openid 微信openid
-     * @param cb -1 表示需要重新认证
+     * 账号登录
+     * @param playerID account
+     * @param cb ok false 表示需要重新登录
      */
-    service.weixinLogin = async function (argJson,cb) {
-        //调用LoginService的微信登录接口
-        var service = app.getRandomService("LoginService");
-        var info = await service.runProxy["weixinLogin"](argJson);
-        if(info.ok){//登录成功了
-
+    service.login = function (playerID,cb) {
+        if (UnitTools.isNullOrUndefined(playerID)) {
+            cb({ok:false});//连接大厅失败
+            return;
         }
-        cb(info);
-    }
+        playerManager.setIsLogin(playerID,true);//设置登录状态
+        playerManager.setSession(playerID,cb.session);//保存session到玩家信息
+        cb.session.playerID = playerID;//保存玩家id到session
+        cb({ok:true});//连接大厅成功
+    };
 
     /**
-     * 账号密码登录
-     * @param argJson account pass
-     * @param cb code -1 表示需要重新登录
-     */
-    service.normalLogin = function (argJson,cb) {
-
-    }
-
-    /**
-     * 注册游戏名字
-     * @param argJson name 玩家的名字
+     * 创建房间
+     * @param roomInfo 房间配置信息
      * @param cb
      */
-    service.registerName = function (argJson,cb) {
+    service.createRoom = async function (roomInfo,cb) {
+        var playerID = cb.session.playerID;
+        var isLogin = playerManager.getIsLogin(playerID);
+        if (!isLogin){
+            cb({ok:false});
+            return;
+        }
 
-    }
-
-
-
-
+        await roomController.createRoom(playerID,roomInfo,(err,data)=>{
+            if (err) {
+                cb({ok:false,err:err});
+            }else {
+                cb({ok:true,err:false,roomID:data});
+            }
+        });
+    };
+    /**
+     * 加入房间
+     * @param roomID
+     * @param cb
+     */
+    service.joinRoom = async function (roomID, cb) {
+        var playerID = cb.session.playerID;
+        if(!playerManager.getIsLogin(playerID)){
+            cb({ok:false});
+            return;
+        }
+        await roomController.joinRoom(playerID,roomID,(err,data)=>{
+            if (err) {
+                cb({ok:false,err:err});
+            }else {
+                let gameUrl = '';
+                let gameService = undefined;
+                if (data.config.gameType === '斗地主') {
+                    gameService = app.getRandomService("DDZService");
+                    gameUrl = "ws://"+gameService.ip+":"+gameService.port;
+                } else if (data.config.gameType  === '五醉牛') {
+                    gameService = app.getRandomService("NiuNiuService");
+                    gameUrl = "ws://"+gameService.ip+":"+gameService.port;
+                } else if (data.config.gameType  === '拼三张') {
+                    gameService = app.getRandomService("PSZService");
+                    gameUrl = "ws://"+gameService.ip+":"+gameService.port;
+                }
+                playerManager.setGameUrl(playerID,gameUrl,data);
+                cb({ok:true,err:false,gameUrl:gameUrl,roomConfig:data});
+            }
+        });
+    };
+    //刷新玩家信息
+    service.refreshSelfInfo = async function (cb) {
+        var playerID = cb.session.playerID;
+        if(!playerManager.getIsLogin(playerID)){
+            cb({ok:false});
+            return;
+        }
+        var accountInfo = await myDB.getAccountInfoByAccount(playerID);
+        var userInfo = await myDB.getUserInfoByAccount(playerID);
+        playerManager.setInformation(playerID,accountInfo[0],userInfo[0]);
+        if (accountInfo && accountInfo.length !==0) {
+            cb({ok:true,info:playerManager.getInformation(playerID)});
+            return;
+        }
+        cb({ok:false});
+    };
+    //获取房间列表
+    service.searchRoomList = function (cb) {
+        var playerID = cb.session.playerID;
+        if(!playerManager.getIsLogin(playerID)){
+            cb({ok:false});
+            return;
+        }
+        roomController.searchRoomList(playerID,data=>{
+            cb({ok:true,roomList:data});
+        })
+    };
+    //验证邀请码
+    service.inviteCode = async function (code,cb) {
+        var playerID = cb.session.playerID;
+        if(!playerManager.getIsLogin(playerID)){
+            cb({ok:false});
+            return;
+        }
+        let ranking = await myDB.getRankingByAccountID(code);
+        if (ranking && ranking.length !== 0) {
+            let result = await myDB.upDateUserRanking(playerID,ranking[0].ranking);
+            if (result) {
+                cb({ok:true,data:ranking[0].ranking});
+            }
+        }else {
+            cb({ok:false,data:"无此邀请码"});
+        }
+    };
+    service.systemInfo = async function (cb) {
+        let info = await myDB.getSystemInfo();
+        if (info && info.length !== 0){
+            cb({ok:true,info:info[0]});
+        }else {
+            cb({ok:false});
+        }
+    };
+    service.gameRecord = async function (type,cb) {
+        var playerID = cb.session.playerID;
+        if(!playerManager.getIsLogin(playerID)){
+            cb({ok:false});
+            return;
+        }
+        let record = await myDB.getGameRecord(type);
+        if (record) {
+            let gameRecords = [];
+            for (let i = 0; i < record.length; i++) {
+                let playersJson = JSON.parse(record[i].players);
+                // console.log('t_ddzgamescore 中的players=' + playersJson + '；playersJson的长度：' + playersJson.length);
+                for (let j = 0; j < playersJson.length; j++) {
+                    if (playerID === playersJson[j]) {//31312204
+                        // console.log("找到一条游戏记录。。。");
+                        let oneRecord = record[i];
+                        // console.log('oneRecord:' + JSON.stringify(oneRecord));
+                        gameRecords.push(oneRecord);
+                        break;
+                    }
+                }
+            }
+            cb({ok:true,record:gameRecords});
+            return;
+        }
+        cb({ok:true,record:[]});
+    };
+    service.logout = function (cb) {
+        var playerID = cb.session.playerID;
+        if(!playerManager.getIsLogin(playerID)){
+            cb({ok:false});
+            return;
+        }
+        playerManager.deletePlayer(playerID);
+        cb({ok:true});
+    };
     return {
         service: service, onClientIn: onClientIn, onClientOut: onClientOut, onStart: onStart
     };
-}
+};

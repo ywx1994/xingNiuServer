@@ -14,5 +14,15 @@ Config.prototype.load = function (fileName) {
 Config.prototype.get = function (key) {
     return this.configJson[key];
 }
+Config.getServerConfig = function () {
+    var config = new Config();
+    config.load("config.json");
+    if(config.get("mode") == "debug"){
+        config.load("serverconfdebug.json");
+        return config.configJson;
+    }
+    config.load("serverconf.json");
+    return config.configJson;
+}
 
 module.exports = Config;

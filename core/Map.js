@@ -7,7 +7,7 @@ function HancedMap(){
     this.objects = new NativeMap();
 }
 HancedMap.prototype.getOrCreate = function(key){
-    key = key.toString();
+    //key = key.toString();
     if(UnitTools.isNullOrUndefined(key)){
         return;
     }
