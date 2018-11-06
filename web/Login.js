@@ -53,7 +53,7 @@ app.get("/weixinRegister/",async function (req, res) {
             let loginDate = getLocalDateStr();
             let updateResult = await myDB.upDateAccountInfo(uid,loginDate,ip,platform,nickName,avatarUrl,sex,city);
             if (updateResult) {
-                res.send({ok:true,accountID:playerInfo[0].account_id,hallIP:"ws://120.78.65.161:39401"});
+                res.send({ok:true,accountID:playerInfo[0].account_id,hallIP:"ws://127.0.0.1:39401"});
             }
         }else {
             let accountID = await ids.getID();
@@ -62,7 +62,7 @@ app.get("/weixinRegister/",async function (req, res) {
             let createDate = getLocalDateStr();
             let registerResult = await myDB.createAccount(uid,accountID,ip,createDate,platform,nickName,avatarUrl,sex,city,diamond,gold);
             if (registerResult) {
-                res.send({ok:true,accountID:accountID,hallIP:"ws://120.78.65.161:39401"});
+                res.send({ok:true,accountID:accountID,hallIP:"ws://127.0.0.1:39401"});
             }
         }
     }else {
@@ -85,7 +85,7 @@ app.get("/weixinlogin/",async function (req, res) {
     if (playerInfo && playerInfo.length !== 0) {
         let updateResult = await myDB.upDateLoginInfo(uid,loginDate,ip,platform);
         if (updateResult) {
-            res.send({ok:true,accountID:playerInfo[0].account_id,hallIP:"ws://120.78.65.161:39401"});
+            res.send({ok:true,accountID:playerInfo[0].account_id,hallIP:"ws://127.0.0.1:39401"});
             onlinePlayer++;/**测试用*/
             console.log("登录用户："+onlinePlayer);
         }

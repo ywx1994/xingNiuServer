@@ -169,6 +169,13 @@ module.exports = function () {
             });
         }
     };
+    service.YGDD = function (flag, cb) {
+        var playerID = cb.session.playerID;
+        var room = playerManager.getTable(playerID);
+        if (room) {
+            playerManager.setYGDD(playerID,flag);
+        }
+    };
     return {
         service: service, onClientIn: onClientIn, onClientOut: onClientOut, onStart: onStart
     };

@@ -6,10 +6,10 @@
     }
   },
   "services":{
-    "HallService":{"hosts":[{"id":"HallService1","ip":"120.78.65.161","port":"39401","custom":{}}]},
-    "DDZService":{"hosts":[{"id":"DDZService1","ip":"120.78.65.161","port":"39501","custom":{}}]},
-    "NiuNiuService":{"hosts":[{"id":"NiuNiuService1","ip":"120.78.65.161","port":"39601","custom":{}}]},
-    "PSZService":{"hosts":[{"id":"PSZService1","ip":"120.78.65.161","port":"39701","custom":{}}]}
+    "HallService":{"hosts":[{"id":"HallService1","ip":"127.0.0.1","port":"39401","custom":{}}]},
+    "DDZService":{"hosts":[{"id":"DDZService1","ip":"127.0.0.1","port":"39501","custom":{}}]},
+    "NiuNiuService":{"hosts":[{"id":"NiuNiuService1","ip":"127.0.0.1","port":"39601","custom":{}}]},
+    "PSZService":{"hosts":[{"id":"PSZService1","ip":"127.0.0.1","port":"39701","custom":{}}]}
   },
   "loadingbalancing":{
       "HallService":["HallService1"],
@@ -29,7 +29,7 @@
     "host": "127.0.0.1",
     "port": 3306,
     "user": "root",
-    "password": "ywx1994",
+    "password": "ywx123456",
     "database": "xingniu"
   },
   "ids":{

@@ -392,6 +392,14 @@ class PlayerManager{
         info.gameInfo.isDisCard = false;
         info.gameInfo.isLookCards = false;
         info.gameInfo.award = 0;
+        info.gameInfo.YGDD = false;
+    }
+    setYGDD(playerID,flag){
+        var info = this.getOrCreatePlayer(playerID);
+        info.gameInfo.YGDD = flag;
+    }
+    getYGDD(playerID){
+        return this.getOrCreatePlayer(playerID).gameInfo.YGDD;
     }
     setAward(playerID,award){
         var info = this.getOrCreatePlayer(playerID);

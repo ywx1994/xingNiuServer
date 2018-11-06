@@ -394,6 +394,7 @@ class Room {
             this.bout++;
             if (this.bout > Number(this.roomConfig.limitRound)) {
                 for (let i = 0; i < this.playerList.length; i++) {
+                    playerManager.setYGDD(this.playerList[i],false);
                     playerManager.gameSend(this.playerList[i], "outOfBout", {});
                 }
             } else {
@@ -419,7 +420,7 @@ class Room {
             this.turnPushCardPlayer();
         } else {
             for (let i = 0; i < this.playerList.length; i++) {
-                if (playerManager.getSeatIndex(this.playerList[i] === seat)) {
+                if (playerManager.getSeatIndex(this.playerList[i]) === seat) {
                     this.nowPlayer = this.playerList[i];
                     this.timer();
                     break;
@@ -466,24 +467,27 @@ class Room {
     };
 
     timer(){
-        let time = 17;
+        let time = 16;
+        if (playerManager.getYGDD(this.nowPlayer)){
+            time = 1;
+        }
         this.t =setInterval(()=>{
-            console.log(time);
+            //console.log(time);
             time--;
             if(time<0){
-                if (this.timeOutAutoAction === 3) {
+                if (this.timeOutAutoAction === 3 ||playerManager.getYGDD(this.nowPlayer)) {
                     this.addChips(this.nowPlayer,0,data=>{
                         playerManager.setChips(this.nowPlayer,playerManager.getChips(this.nowPlayer)+data);
                     });
                 }else if (this.timeOutAutoAction === 2) {
-                    playerManager.setIsLookCards(this.nowPlayer,false);
-                    playerManager.setIsDisCard(this.nowPlayer,true);
+                    playerManager.setIsLookCards(this.nowPlayer, false);
+                    playerManager.setIsDisCard(this.nowPlayer, true);
                     this.playerAbandon(this.nowPlayer);
                 }else {
                     this.stopTimer();
                 }
             }
-        },100);
+        },1000);
     }
     stopTimer(){
         clearInterval(this.t);
@@ -554,6 +558,12 @@ class Room {
             // let flag = false;
             let cards1 = [];
             let cards2 = [];
+            if (playerManager.getIsLookCards(player1)){
+                cards1 = playerManager.getCards(player1);
+            }
+            if (playerManager.getIsLookCards(player2)){
+                cards2 = playerManager.getCards(player2);
+            }
             // if (seatIndex === seatIndex1 || seatIndex === seatIndex2) {
             //     flag = true;
             // }
@@ -563,14 +573,31 @@ class Room {
             // }
             let information1 = playerManager.getInformation(player1);
             let information2 = playerManager.getInformation(player2);
-            let data = [{
-                nickName: information1.nickName,
-                avatarUrl: information1.avatarUrl,
-                result: result,
-                cards: cards1
-            },
-                {nickName: information2.nickName, avatarUrl: information2.avatarUrl, result: !result, cards: cards2}];
-            playerManager.gameSend(this.playerList[i], "compareResult", data);
+            if (this.playerList[i] === player1) {
+                playerManager.gameSend(this.playerList[i], "compareResult", [{
+                    nickName: information1.nickName,
+                    avatarUrl: information1.avatarUrl,
+                    result: result,
+                    cards: cards1
+                },
+                    {nickName: information2.nickName, avatarUrl: information2.avatarUrl, result: !result, cards: []}]);
+            }else if (this.playerList[i] === player2) {
+                playerManager.gameSend(this.playerList[i], "compareResult", [{
+                    nickName: information1.nickName,
+                    avatarUrl: information1.avatarUrl,
+                    result: result,
+                    cards: []
+                },
+                    {nickName: information2.nickName, avatarUrl: information2.avatarUrl, result: !result, cards: cards2}]);
+            }else {
+                playerManager.gameSend(this.playerList[i], "compareResult", [{
+                    nickName: information1.nickName,
+                    avatarUrl: information1.avatarUrl,
+                    result: result,
+                    cards: []
+                },
+                    {nickName: information2.nickName, avatarUrl: information2.avatarUrl, result: !result, cards: []}]);
+            }
         }
     }
     ;
