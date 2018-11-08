@@ -113,17 +113,6 @@ module.exports = function () {
         }
         cb({ok:false});
     };
-    //获取房间列表
-    service.searchRoomList = function (cb) {
-        var playerID = cb.session.playerID;
-        if(!playerManager.getIsLogin(playerID)){
-            cb({ok:false});
-            return;
-        }
-        roomController.searchRoomList(playerID,data=>{
-            cb({ok:true,roomList:data});
-        })
-    };
     //验证邀请码
     service.inviteCode = async function (code,cb) {
         var playerID = cb.session.playerID;

@@ -53,32 +53,25 @@ module.exports = function () {
         var playerID = cb.session.playerID;
         var room = playerManager.getTable(playerID);
         if (room) {
-            room.playerRequestLeaveRoom(playerID,(err,data)=>{
-                if (err) {
-                    cb({ok:false,data:err});
-                    return;
+            room.playerRequestLeaveRoom(playerID,(data)=>{
+                if (data) {
+                    playerManager.leaveTable(playerID);
                 }
-                playerManager.leaveTable(playerID);
-                cb({ok:true,data:data});
+                cb({ok:data});
             })
         }else {
-            cb({ok:false,data:"系统判定您不在房间内"});
+            cb({ok:false});
         }
-
     };
-    service.destroyRoom = function (cb) {
+    service.getExitString = function(cb){
         var playerID = cb.session.playerID;
         var room = playerManager.getTable(playerID);
         if (room) {
-            room.playerDestroyRoom(playerID,(err)=>{
-                if (err) {
-                    cb({ok:false,err:err});
-                }else {
-                    cb({ok:true});
-                }
-            });
-        }else {
-            cb({ok:false,data:"系统判定您不在房间内"});
+            if (room.creatorID === playerID||room.state > 1) {
+                cb({data:'您确定解散房间吗？'});
+            }else {
+                cb({data:'您确定离开房间吗？'});
+            }
         }
     };
     service.destroyRoomChoice = function (data,cb) {
@@ -149,12 +142,11 @@ module.exports = function () {
             cb({ok:false});
         }
     };
-    service.compareCards = function (seatIndex,cb) {
+    service.compareCards = function (accountID,cb) {
         var playerID = cb.session.playerID;
-        let seatIndex1 = playerManager.getSeatIndex(playerID);
         var room = playerManager.getTable(playerID);
         if (room) {
-            room.compareCards(seatIndex1,seatIndex);
+            room.compareCards(playerID,accountID);
             room.addChips(playerID,-1,data=>{
                 playerManager.setChips(playerID,playerManager.getChips(playerID)+data);
             });

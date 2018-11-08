@@ -102,7 +102,7 @@ class Room {
      * @param state
      * @param flag
      */
-    async setState(state, flag) {
+    setState(state, flag) {
         console.log("------ state = " + state + " ;  _state = " + this.state);
         if (state === this.state) {
             return;
@@ -121,22 +121,8 @@ class Room {
                 this.startPlayerList = this.readyPlayerList;
                 this.readyPlayerList = [];
                 this.player = [];
-                if (this.roomConfig.roomRate.substr(0, 2) === 'AA') {
-                    console.log('游戏开始了，这是AA支付，每位玩家都应扣除相应的钻石');
-                    let needDiamond = UnitTools.getNumFromStr(this.roomConfig.roomRate);
-                    for (let i = 0, len = this.startPlayerList.length; i < len; i++) {
-                        let playerID = this.startPlayerList[i];
-                        if (!playerManager.getIsGaming(playerID)) {
-                            playerManager.setIsGaming(playerID, true);
-                            console.log("playerID:" + playerID);
-                            let diamondCount = await myDB.getPlayerDiamondCount(playerID);
-                            let hasMoney = Number(diamondCount[0].diamond);
-                            hasMoney -= needDiamond;
-                            myDB.upDateDiamondCountByAccountID(playerID, hasMoney);
-                        }
-                    }
-                }
                 for (let j = 0; j < this.playerList.length; j++) {
+                    playerManager.setIsGaming(this.playerList[j], true);
                     playerManager.gameSend(this.playerList[j], "gameStart", {startPlayerList: this.startPlayerList});
                 }
                 setTimeout(() => {
@@ -537,7 +523,26 @@ class Room {
         return keys;
     };
 
-    allGameOver() {
+    async allGameOver() {
+        //解散房间时把房费还给房主（如果不是AA的话）
+        if (this.roomConfig.roomRate.substr(0, 2) !== 'AA') {
+            let needDiamond = UnitTools.getNumFromStr(this.roomConfig.roomRate);
+            let diamondCount = await myDB.getPlayerDiamondCount(this.creatorID);
+            let hasMoney = Number(diamondCount[0].diamond);
+            hasMoney -= needDiamond;
+            await myDB.upDateDiamondCountByAccountID(this.creatorID, hasMoney);
+        }else {
+            let needDiamond = UnitTools.getNumFromStr(this.roomConfig.roomRate);
+            for (let i = 0, len = this.playerList.length; i < len; i++) {
+                let playerID = this.playerList[i];
+                if (playerManager.getIsGaming(playerID)) {
+                    let diamondCount = await myDB.getPlayerDiamondCount(playerID);
+                    let hasMoney = Number(diamondCount[0].diamond);
+                    hasMoney -= needDiamond;
+                    await myDB.upDateDiamondCountByAccountID(playerID, hasMoney);
+                }
+            }
+        }
         this.XJTZFlag = false;
         for (let i = 0; i < this.playerList.length; i++) {
             let playerID = this.playerList[i];
@@ -1021,11 +1026,15 @@ class Room {
         }
     };
 
-    //玩家请求离开房间
+    //解散房间处理
     playerRequestLeaveRoom(playerID, cb) {
-        if (cb) {
-            if (playerManager.getIsGaming(playerID)) {
-                cb('游戏已开始,不能离开房间！');
+        if (this.state === roomState.WaitingReady) {
+            if (playerID === this.creatorID) {
+                for (let i = 0, len = this.playerList.length; i < len; i++) {
+                    playerManager.gameSend(this.playerList[i], "roomHasDestroyed", {});
+                }
+                this.roomManager.deleteRoom(this.roomID);
+                cb(false);
             } else {
                 for (let i = 0; i < this.readyPlayerList.length; i++) {
                     if (playerID === this.readyPlayerList[i]) {
@@ -1043,33 +1052,7 @@ class Room {
                 if (this.firstPlayerID === playerID) {//如果自己是第一个玩家，那就让其他玩家执行第一个玩家的权利
                     this.changeFirstPlayer();
                 }
-                cb(null, '离开房间成功！');
-            }
-        }
-    };
-
-    //解散房间处理
-    playerDestroyRoom(playerID, cb) {
-        if (this.state === roomState.WaitingReady) {
-            if (playerID === this.creatorID) {
-                //解散房间时把房费还给房主（如果不是AA的话）
-                if (this.roomConfig.roomRate.substr(0, 2) !== 'AA') {
-                    let needDiamond = UnitTools.getNumFromStr(this.roomConfig.roomRate);
-                    let diamondCount = myDB.getPlayerDiamondCount(playerID);
-                    let hasMoney = Number(diamondCount[0].diamond);
-                    hasMoney -= needDiamond;
-                    myDB.upDateDiamondCountByAccountID(this.creatorID, hasMoney);
-                    console.log('\n** createRoom ** _houseManager.diamondCount = ' + diamondCount);
-                }
-                for (let i = 0, len = this.playerList.length; i < len; i++) {
-                    playerManager.gameSend(this.playerList[i], "roomHasDestroyed", {});
-                }
-                this.roomManager.deleteRoom(this.roomID);
-                cb(null);
-            } else {
-                if (cb) {
-                    cb('您不是房主，无权解散房间!');
-                }
+                cb(true);
             }
         } else {
             let playerDataList = [];
@@ -1087,7 +1070,7 @@ class Room {
                     playerDataList: playerDataList
                 });
             }
-            cb(null);
+            cb(false);
         }
     };
 

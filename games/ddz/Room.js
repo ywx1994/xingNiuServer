@@ -69,7 +69,7 @@ const getFirstCaller = function () {
 };
 
 class Room {
-    constructor(playerID,roomID,roomConfig){
+    constructor(playerID, roomID, roomConfig) {
         this.creatorID = playerID;//创建者
         this.roomID = roomID;//房间号
         this.roomConfig = roomConfig;//房间配置信息
@@ -103,7 +103,8 @@ class Room {
         this.setState(roomState.WaitingReady);
         this.roomManager = undefined;
     }
-    async setState(state){
+
+    setState(state) {
         console.log("------ state = " + state + " ;  _state = " + this.state);
         if (state === this.state) {
             return;
@@ -114,35 +115,22 @@ class Room {
                 break;
             case roomState.GameStart:
                 this.roundCount++;
-                if (this.roundCount === 1 && this.roomConfig.roomRate.substr(0, 2) === 'AA') {
-                    console.log('游戏开始了，这是AA支付，每位玩家都应扣除相应的钻石');
-                    let needDiamond = UnitTools.getNumFromStr(this.roomConfig.roomRate);
-                    for (let i = 0, len = this.playerList.length; i < len; i++) {
-                        var diamondCount = await myDB.getPlayerDiamondCount(this.playerList[i]);
-                        let hasMoney = Number(diamondCount[0].diamond);
-                        hasMoney -= needDiamond;
-                        let result = await myDB.upDateDiamondCountByAccountID(this.playerList[i], hasMoney);
-                        if (result) {
-                            console.log(result);
-                        }
-                    }
-                }
                 this.multiple = 1;
                 for (let i = 0, len = this.playerList.length; i < len; i++) {
-                    playerManager.gameSend(this.playerList[i],"changeMultiple",this.multiple);
+                    playerManager.gameSend(this.playerList[i], "changeMultiple", this.multiple);
                 }
                 if (this.startGameTime === undefined) {
                     this.startGameTime = getLocalDateStr();
                 }
                 this.gameIsOver = false;
                 for (let i = 0, len = this.playerList.length; i < len; i++) {
-                    playerManager.setIsGaming(this.playerList[i],true);
-                    playerManager.gameSend(this.playerList[i],"gameStart",{});
+                    playerManager.setIsGaming(this.playerList[i], true);
+                    playerManager.gameSend(this.playerList[i], "gameStart", {});
                 }
                 this.startPlayerList = this.readyPlayerList;
                 this.readyPlayerList = [];
                 this.state = state;
-                await this.setState(roomState.PushCard);
+                this.setState(roomState.PushCard);
                 break;
             case roomState.PushCard:
                 console.log("我是斗地主,我发牌了。。。");
@@ -151,32 +139,35 @@ class Room {
                     for (let j = 0; j < this.playerList.length; j++) {
                         if (this.startPlayerList[i] === this.playerList[j]) {
                             this.ddzCards[i].sort((a, b) => {
-                                return a.id -b.id;
+                                return a.id - b.id;
                             });
-                            playerManager.setCards(this.playerList[j],this.ddzCards[i]);
-                           playerManager.gameSend(this.playerList[j],"pushCard",this.ddzCards[i]);
+                            playerManager.setCards(this.playerList[j], this.ddzCards[i]);
+                            playerManager.gameSend(this.playerList[j], "pushCard", this.ddzCards[i]);
                         }
                     }
                 }
                 this.state = state;
-                await this.setState(roomState.LandClaim);
+                this.setState(roomState.LandClaim);
                 break;
             case roomState.LandClaim:
                 console.log("接下来要开始抢地主了。。。");
                 this.firstCaller = getFirstCaller();
-                console.log("第一个叫地主："+this.firstCaller);
+                console.log("第一个叫地主：" + this.firstCaller);
                 for (let i = 0, len = this.playerList.length; i < len; i++) {
-                    playerManager.gameSend(this.playerList[i],"canLandClaim",{caller:this.firstCaller,robTimes:this.robTimes});
+                    playerManager.gameSend(this.playerList[i], "canLandClaim", {
+                        caller: this.firstCaller,
+                        robTimes: this.robTimes
+                    });
                 }
                 this.state = state;
                 break;
             case roomState.ShowBottomCards:
                 for (let i = 0; i < this.playerList.length; i++) {
-                    playerManager.gameSend(this.playerList[i],"showBottomCards",this.ddzCards[3])
+                    playerManager.gameSend(this.playerList[i], "showBottomCards", this.ddzCards[3])
                 }
                 this.state = state;
-                setTimeout(async () => {
-                  await  this.setState(roomState.Playing);
+                setTimeout(() => {
+                    this.setState(roomState.Playing);
                 }, 2000);
                 break;
             case roomState.Playing:
@@ -200,8 +191,8 @@ class Room {
                     }
                     setTimeout(() => {
                         for (let i = 0; i < this.playerList.length; i++) {
-                            playerManager.gameSend(this.playerList[i],"changeMultiple",this.multiple);
-                            playerManager.gameSend(this.playerList[i],"spring",{});
+                            playerManager.gameSend(this.playerList[i], "changeMultiple", this.multiple);
+                            playerManager.gameSend(this.playerList[i], "spring", {});
                         }
                     }, 1500);
                 }
@@ -215,10 +206,10 @@ class Room {
                             let playerID = this.playerList[i];
                             if (playerID === this.land) {
                                 let singleScore = 2 * this.roomConfig.basicScore * this.multiple;
-                                playerManager.setSingleScore(playerID,singleScore);
+                                playerManager.setSingleScore(playerID, singleScore);
                                 let ddzScore = playerManager.getScore(playerID);
                                 ddzScore += singleScore;
-                                playerManager.setScore(playerID,ddzScore);
+                                playerManager.setScore(playerID, ddzScore);
                                 listSettlement.push({
                                     playerID: playerID,
                                     nickName: playerManager.getInformation(playerID).nickName,
@@ -226,10 +217,10 @@ class Room {
                                 });
                             } else {
                                 let singleScore = -1 * this.roomConfig.basicScore * this.multiple;
-                                playerManager.setSingleScore(playerID,singleScore);
+                                playerManager.setSingleScore(playerID, singleScore);
                                 let ddzScore = playerManager.getScore(playerID);
                                 ddzScore += singleScore;
-                                playerManager.setScore(playerID,ddzScore);
+                                playerManager.setScore(playerID, ddzScore);
                                 listSettlement.push({
                                     playerID: playerID,
                                     nickName: playerManager.getInformation(playerID).nickName,
@@ -247,10 +238,10 @@ class Room {
                             let playerID = this.playerList[i];
                             if (playerID === this.land) {
                                 let singleScore = -2 * this.roomConfig.basicScore * this.multiple;
-                                playerManager.setSingleScore(playerID,singleScore);
+                                playerManager.setSingleScore(playerID, singleScore);
                                 let ddzScore = playerManager.getScore(playerID);
                                 ddzScore += singleScore;
-                                playerManager.setScore(playerID,ddzScore);
+                                playerManager.setScore(playerID, ddzScore);
                                 listSettlement.push({
                                     playerID: playerID,
                                     nickName: playerManager.getInformation(playerID).nickName,
@@ -258,10 +249,10 @@ class Room {
                                 });
                             } else {
                                 let singleScore = 1 * this.roomConfig.basicScore * this.multiple;
-                                playerManager.setSingleScore(playerID,singleScore);
+                                playerManager.setSingleScore(playerID, singleScore);
                                 let ddzScore = playerManager.getScore(playerID);
                                 ddzScore += singleScore;
-                                playerManager.setScore(playerID,ddzScore);
+                                playerManager.setScore(playerID, ddzScore);
                                 listSettlement.push({
                                     playerID: playerID,
                                     nickName: playerManager.getInformation(playerID).nickName,
@@ -272,7 +263,10 @@ class Room {
                     }
 
                     for (let i = 0; i < this.playerList.length; i++) {
-                        playerManager.gameSend(this.playerList[i],"oneGameOver",{winnerList:winnerList,listSettlement:listSettlement});
+                        playerManager.gameSend(this.playerList[i], "oneGameOver", {
+                            winnerList: winnerList,
+                            listSettlement: listSettlement
+                        });
                     }
                     if (this.roundCount === 1) {
                         this.gameRecord.create_date = getLocalDateStr();
@@ -324,26 +318,27 @@ class Room {
 
         }
     }
+
     //产生地主
-    changeLand () {
+    changeLand() {
         console.log("通知已经产生了地主。。。_landID=" + this.land);
         let landCards = playerManager.getCards(this.land);
         for (let i = 0; i < this.ddzCards[3].length; i++) {
             landCards.push(this.ddzCards[3][i]);
         }
         landCards.sort((a, b) => {
-            return a.id -b.id;
+            return a.id - b.id;
         });
-        playerManager.setCards(this.land,landCards);
+        playerManager.setCards(this.land, landCards);
         console.log(landCards);
         for (let i = 0; i < this.playerList.length; i++) {
-            playerManager.gameSend(this.playerList[i],"changeLand",this.land);
+            playerManager.gameSend(this.playerList[i], "changeLand", this.land);
         }
         this.setState(roomState.ShowBottomCards);
     };
 
     //玩家抢地主的状态(抢的结果)
-    playerRobState (playerID, value) {
+    playerRobState(playerID, value) {
         this.turnTimes++;
         console.log("*** room *** playerLandClaimState value=" + value);
         if (value === '叫地主' || value === '抢地主') {
@@ -353,7 +348,7 @@ class Room {
                 this.multiple = this.roomConfig.limitMultiplier;
             }
             for (let i = 0, len = this.playerList.length; i < len; i++) {
-                playerManager.gameSend(this.playerList[i],"changeMultiple",this.multiple);
+                playerManager.gameSend(this.playerList[i], "changeMultiple", this.multiple);
             }
             if (this.firstRobPlayer === undefined) {
                 this.firstRobPlayer = playerID;
@@ -362,13 +357,16 @@ class Room {
 
         }
         for (let i = 0, len = this.playerList.length; i < len; i++) {
-            playerManager.gameSend(this.playerList[i],"playerRobState",{playerID:playerID,value:value})
+            playerManager.gameSend(this.playerList[i], "playerRobState", {playerID: playerID, value: value})
         }
         if (this.turnTimes < 3) {
             let seatIndex = playerManager.getSeatIndex(playerID);
             let nextSeatIndex = seatIndex + 1 === 3 ? 0 : seatIndex + 1;
             for (let i = 0, len = this.playerList.length; i < len; i++) {
-                playerManager.gameSend(this.playerList[i],"canLandClaim",{caller:nextSeatIndex,robTimes:this.robTimes});
+                playerManager.gameSend(this.playerList[i], "canLandClaim", {
+                    caller: nextSeatIndex,
+                    robTimes: this.robTimes
+                });
             }
         } else if (this.turnTimes === 3) {
             if (this.robTimes === 0) {      //三个都不叫地主，第一个可以叫的人为地主
@@ -391,7 +389,10 @@ class Room {
             } else {
                 let nextSeatIndex = playerManager.getSeatIndex(this.firstRobPlayer);
                 for (let i = 0, len = this.playerList.length; i < len; i++) {
-                    playerManager.gameSend(this.playerList[i],"canLandClaim",{caller:nextSeatIndex,robTimes:this.robTimes});
+                    playerManager.gameSend(this.playerList[i], "canLandClaim", {
+                        caller: nextSeatIndex,
+                        robTimes: this.robTimes
+                    });
                 }
             }
         } else if (this.turnTimes === 4) {
@@ -404,8 +405,9 @@ class Room {
             this.changeLand();
         }
     };
+
     //刷新出牌的玩家
-    referTurnPlayerPushCard () {
+    referTurnPlayerPushCard() {
         let index = this.landIndex;
         for (let i = 2; i >= 0; i--) {
             let z = index;
@@ -416,6 +418,7 @@ class Room {
             index++;
         }
     };
+
     //玩家轮流出牌
     turnPlayerPushCard() {
         if (this.gameIsOver) {
@@ -428,11 +431,15 @@ class Room {
         let player = this.pushCardPlayerList.pop();
         let seatIndex = playerManager.getSeatIndex(player);
         for (let i = 0; i < this.playerList.length; i++) {
-            playerManager.gameSend(this.playerList[i],"canPushCard",{seatIndex:seatIndex,lastCardsLength:this.currentPlayerPushCardList.length});
+            playerManager.gameSend(this.playerList[i], "canPushCard", {
+                seatIndex: seatIndex,
+                lastCardsLength: this.currentPlayerPushCardList.length
+            });
         }
     };
+
     //玩家出牌
-    playerPushCard (playerID, cards, cb) {
+    playerPushCard(playerID, cards, cb) {
         if (cards.length === 0) {
             this.notPushCount++;
             if (this.notPushCount === 2) {
@@ -456,7 +463,7 @@ class Room {
                         this.multiple = this.roomConfig.limitMultiplier;
                     }
                     for (let i = 0, len = this.playerList.length; i < len; i++) {
-                        playerManager.gameSend(this.playerList[i],"changeMultiple",this.multiple);
+                        playerManager.gameSend(this.playerList[i], "changeMultiple", this.multiple);
                     }
                 }
                 if (this.currentPlayerPushCardList.length === 0 || this.notPushCount === 2) {
@@ -490,10 +497,15 @@ class Room {
             }
         }
     };
+
     //通知玩家出牌者和其出的牌
-    sendPlayerPushedCards (playerID, cards, style) {
+    sendPlayerPushedCards(playerID, cards, style) {
         for (let i = 0; i < this.playerList.length; i++) {
-            playerManager.gameSend(this.playerList[i],"playerPushedCards",{playerID:playerID,cards:cards,style:style});
+            playerManager.gameSend(this.playerList[i], "playerPushedCards", {
+                playerID: playerID,
+                cards: cards,
+                style: style
+            });
         }
         if (cards.length !== 0) {
             this.notPushCount = 0;
@@ -507,27 +519,31 @@ class Room {
                     }
                 }
             }
-            playerManager.setCards(playerID,playerCards);
+            playerManager.setCards(playerID, playerCards);
             if (playerCards.length === 0) {
                 this.winner = playerID;
                 this.setState(roomState.GameOver);
             }
         }
     };
+
     //通知其他玩家显示自己手中剩余的牌
-    playerShowRemainCards (playerID, remainCards) {
+    playerShowRemainCards(playerID, remainCards) {
         for (let i = 0; i < this.playerList.length; i++) {
-            playerManager.gameSend(this.playerList[i],"showOtherRemainCards",{playerID:playerID,remainCards:remainCards});
+            playerManager.gameSend(this.playerList[i], "showOtherRemainCards", {
+                playerID: playerID,
+                remainCards: remainCards
+            });
         }
     };
 
     //提示出牌
-    playerRequestTipCards (playerID, cb) {
+    playerRequestTipCards(playerID, cb) {
         let cardList = playerManager.getCards(playerID);
-        console.log("拥有的牌"+JSON.stringify(cardList));
+        console.log("拥有的牌" + JSON.stringify(cardList));
         if (cb) {
             let cardsList = this.carder.getTipCardsList(this.currentPlayerPushCardList, cardList);
-            console.log("提示数组："+JSON.stringify(cardsList));
+            console.log("提示数组：" + JSON.stringify(cardsList));
             if (cardsList !== false) {
                 cb(null, cardsList);
             } else {
@@ -535,8 +551,9 @@ class Room {
             }
         }
     };
+
     //游戏总成绩排序——>>从大到小
-    sortScore () {
+    sortScore() {
         let scoreList = {};
         for (let i = 0; i < this.playerList.length; i++) {
             let score = playerManager.getScore(this.playerList[i]);
@@ -550,8 +567,24 @@ class Room {
         });
         return keys;
     };
+
     //所有游戏结束
-    allGameOver () {
+    async allGameOver() {
+        //解散房间时交房费
+        if (this.roomConfig.roomRate.substr(0, 2) !== 'AA') {
+            let needDiamond = UnitTools.getNumFromStr(this.roomConfig.roomRate);
+            let diamondCount =await myDB.getPlayerDiamondCount(this.creatorID);
+            diamondCount -= needDiamond;
+            await myDB.upDateDiamondCountByAccountID(this.creatorID, diamondCount);
+        }else {
+            let needDiamond = UnitTools.getNumFromStr(this.roomConfig.roomRate);
+            for (let i = 0, len = this.playerList.length; i < len; i++) {
+                var diamondCount = await myDB.getPlayerDiamondCount(this.playerList[i]);
+                let hasMoney = Number(diamondCount[0].diamond);
+                hasMoney -= needDiamond;
+                await myDB.upDateDiamondCountByAccountID(this.playerList[i], hasMoney);
+            }
+        }
         for (let i = 0; i < this.playerList.length; i++) {
             let playerID = this.playerList[i];
             this.gameInfo.userContents.push({
@@ -580,7 +613,7 @@ class Room {
             });
         }
         //保存游戏记录
-        myDB.saveGameRecords("ddz",{
+        myDB.saveGameRecords("ddz", {
             gameRecord: this.gameRecord,
             gameInfo: this.gameInfo
         });
@@ -591,7 +624,7 @@ class Room {
 
         setTimeout(() => {
             for (let i = 0; i < this.playerList.length; i++) {
-                playerManager.gameSend(this.playerList[i],"allGameOver",{
+                playerManager.gameSend(this.playerList[i], "allGameOver", {
                     playerList: playerInfoList,
                     gameTime: this.startGameTime,
                     houseMasterID: this.creatorID,
@@ -603,23 +636,24 @@ class Room {
         }, 3000);
     };
 
-    joinPlayer(playerID,roomManager,cb) {
+    joinPlayer(playerID, roomManager, cb) {
         this.roomManager = roomManager;
         var seatIndex = getSeatIndex(this.playerList);
         if (seatIndex !== -1) {
             playerManager.initDDZGaming(playerID);
             this.playerList.push(playerID);
-            cb({data:"success",seatIndex:seatIndex});
+            cb({data: "success", seatIndex: seatIndex});
             return;
         }
-        cb({data:"房间人数已满！"});
+        cb({data: "房间人数已满！"});
     }
-    enterRoom(playerID,cb) {
+
+    enterRoom(playerID, cb) {
         let info = playerManager.getInformation(playerID);
         info.seatIndex = playerManager.getSeatIndex(playerID);
         for (let i = 0; i < this.playerList.length; i++) {
             if (this.playerList[i] !== playerID) {
-                playerManager.gameSend(this.playerList[i],"playerJoinRoom",info);
+                playerManager.gameSend(this.playerList[i], "playerJoinRoom", info);
             }
 
         }
@@ -628,14 +662,15 @@ class Room {
             let otherPlayerInfo = playerManager.getInformation(this.playerList[i]);
             otherPlayerInfo.seatIndex = playerManager.getSeatIndex(this.playerList[i]);
             otherPlayerInfo.accountID = this.playerList[i];
-           allInfo.push(otherPlayerInfo);
+            allInfo.push(otherPlayerInfo);
         }
         cb({
             seatIndex: playerManager.getSeatIndex(playerID),
-                readyPlayerList: this.readyPlayerList,
-                playerData: allInfo
+            readyPlayerList: this.readyPlayerList,
+            playerData: allInfo
         });
     }
+
     getConfig() {
         let id = this.roomID;
         let gameType = this.roomConfig.gameType;
@@ -645,18 +680,20 @@ class Room {
         let totalPlayer = 3;
         return {roomID: id, gameType: gameType, point: point, round: round, player: player, totalPlayer: totalPlayer};
     }
+
     playerReady(playerID) {
         this.readyPlayerList.push(playerID);
         for (let i = 0, len = this.playerList.length; i < len; i++) {
-            playerManager.gameSend(this.playerList[i],"playerReady",playerID);
+            playerManager.gameSend(this.playerList[i], "playerReady", playerID);
         }
         //如果三个玩家都准备那就开始游戏
         if (this.readyPlayerList.length === 3) {
-             this.setState(roomState.GameStart);
+            this.setState(roomState.GameStart);
         }
     }
+
     //玩家掉线
-    playerOffLine (playerID) {
+    playerOffLine(playerID) {
         if (!playerManager.getIsGaming(playerID)) {
             for (let i = 0, len = this.playerList.length; i < len; i++) {//将该玩家从_playerList中删除
                 if (this.playerList[i] === playerID) {
@@ -671,19 +708,24 @@ class Room {
                 }
             }
             for (let i = 0, len = this.playerList.length; i < len; i++) {//向房间其他玩家发送自己掉线消息
-                playerManager.gameSend(this.playerList[i],"otherLeaveRoom",playerManager.getInformation(playerID).seatIndex);
+                playerManager.gameSend(this.playerList[i], "otherLeaveRoom", playerManager.getInformation(playerID).seatIndex);
             }
         } else {
             for (let i = 0, len = this.playerList.length; i < len; i++) {//向房间其他玩家发送自己掉线消息
-                playerManager.gameSend(this.playerList[i],"playerOffLine",playerManager.getInformation(playerID).seatIndex);
+                playerManager.gameSend(this.playerList[i], "playerOffLine", playerManager.getInformation(playerID).seatIndex);
             }
         }
     };
-    //玩家请求离开房间
-    playerRequestLeaveRoom (playerID, cb) {
-        if (cb) {
-            if (playerManager.getIsGaming(playerID)) {
-                cb('游戏已开始,不能离开房间！');
+
+    //解散房间处理
+    playerRequestLeaveRoom(playerID, cb) {
+        if (this.state === roomState.WaitingReady) {
+            if (playerID === this.creatorID) {
+                for (let i = 0, len = this.playerList.length; i < len; i++) {
+                    playerManager.gameSend(this.playerList[i], "roomHasDestroyed", {});
+                }
+                this.roomManager.deleteRoom(this.roomID);
+                cb(false);
             } else {
                 for (let i = 0; i < this.readyPlayerList.length; i++) {
                     if (playerID === this.readyPlayerList[i]) {
@@ -696,34 +738,9 @@ class Room {
                     }
                 }
                 for (let i = 0; i < this.playerList.length; i++) {
-                    playerManager.gameSend(this.playerList[i],"otherLeaveRoom",playerID);
+                    playerManager.gameSend(this.playerList[i], "otherLeaveRoom", playerID);
                 }
-                cb(null, '离开房间成功！');
-            }
-        }
-    };
-
-    //解散房间处理
-     playerDestroyRoom (playerID, cb) {
-        if (this.state === roomState.WaitingReady) {
-            if (playerID === this.creatorID) {
-                //解散房间时把房费还给房主（如果不是AA的话）
-                if (this.roomConfig.roomRate.substr(0, 2) !== 'AA') {
-                    let needDiamond = UnitTools.getNumFromStr(this.roomConfig.roomRate);
-                    let diamondCount = myDB.getPlayerDiamondCount(playerID);
-                    diamondCount+= needDiamond;
-                    myDB.upDateDiamondCountByAccountID(this.creatorID, diamondCount);
-                    console.log('\n** createRoom ** _houseManager.diamondCount = ' + diamondCount);
-                }
-                for (let i = 0, len = this.playerList.length; i < len; i++) {
-                    playerManager.gameSend(this.playerList[i],"roomHasDestroyed",{});
-                }
-                this.roomManager.deleteRoom(this.roomID);
-                cb(null);
-            } else {
-                if (cb) {
-                    cb('您不是房主，无权解散房间!');
-                }
+                cb(true);
             }
         } else {
             let playerDataList = [];
@@ -736,21 +753,23 @@ class Room {
                 playerDataList.push(playerData);
             }
             for (let i = 0, len = this.playerList.length; i < len; i++) {
-                playerManager.gameSend(this.playerList[i],"destroyRoomRequest",{nickName: playerManager.getInformation(playerID).nickName,
-                playerDataList:playerDataList});
+                playerManager.gameSend(this.playerList[i], "destroyRoomRequest", {
+                    nickName: playerManager.getInformation(playerID).nickName,
+                    playerDataList: playerDataList
+                });
             }
-            cb(null);
+            cb(false);
         }
     };
 
     //玩家是否同意解散房间
-    showDestroyRoomChoice (data) {
+    showDestroyRoomChoice(data) {
         this.chooseDestroyRoomCount++;
         if (data.choice === 1) {
             this.agreeDestroyRoomCount++;
         }
         for (let i = 0; i < this.playerList.length; i++) {
-            playerManager.gameSend(this.playerList[i],"destroyRoomChoice",data);
+            playerManager.gameSend(this.playerList[i], "destroyRoomChoice", data);
         }
         console.log('\n _chooseDestroyRoomCount = ' + this.chooseDestroyRoomCount + ' ; _agreeDestroyRoomCount = ' + this.agreeDestroyRoomCount);
         if (this.chooseDestroyRoomCount === this.playerList.length) {
@@ -760,13 +779,13 @@ class Room {
                     this.allGameOver();
                 } else {
                     for (let i = 0; i < this.playerList.length; i++) {
-                        playerManager.gameSend(this.playerList[i],"roomHasDestroyed",{});
+                        playerManager.gameSend(this.playerList[i], "roomHasDestroyed", {});
                     }
                     this.roomManager.deleteRoom(this.roomID);
                 }
             } else {
                 for (let i = 0; i < this.playerList.length; i++) {
-                    playerManager.gameSend(this.playerList[i],"destroyRoomFailed",{});
+                    playerManager.gameSend(this.playerList[i], "destroyRoomFailed", {});
                 }
             }
             this.chooseDestroyRoomCount = 0;
@@ -775,38 +794,39 @@ class Room {
     };
 
     //玩家发送表情
-    faceChat (playerID, num) {
+    faceChat(playerID, num) {
         for (let i = 0; i < this.playerList.length; i++) {
-            playerManager.gameSend(this.playerList[i],"faceChat",{playerID:playerID,num:num});
+            playerManager.gameSend(this.playerList[i], "faceChat", {playerID: playerID, num: num});
         }
     };
 
     //玩家发送快捷语
-    wordChat (playerID, num) {
+    wordChat(playerID, num) {
         for (let i = 0; i < this.playerList.length; i++) {
-            playerManager.gameSend(this.playerList[i],"wordChat",{playerID:playerID,num:num});
+            playerManager.gameSend(this.playerList[i], "wordChat", {playerID: playerID, num: num});
         }
     };
 
     //玩家发送动画聊天
-    actionChat (data) {
+    actionChat(data) {
         for (let i = 0, len = this.playerList.length; i < len; i++) {
-            playerManager.gameSend(this.playerList[i],"actionChat",data);
+            playerManager.gameSend(this.playerList[i], "actionChat", data);
         }
     };
 
     //托管
-    showTrust (playerID) {
+    showTrust(playerID) {
         for (let i = 0; i < this.playerList.length; i++) {
-            playerManager.gameSend(this.playerList[i],"showTrust",playerID);
+            playerManager.gameSend(this.playerList[i], "showTrust", playerID);
         }
     };
 
     //取消托管
-    stopShowTrust (playerID) {
+    stopShowTrust(playerID) {
         for (let i = 0; i < this.playerList.length; i++) {
-            playerManager.gameSend(this.playerList[i],"stopShowTrust",playerID);
+            playerManager.gameSend(this.playerList[i], "stopShowTrust", playerID);
         }
     };
 }
+
 module.exports = Room;
